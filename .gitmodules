@@ -1,0 +1,8 @@
+[submodule "reference/opnsense-core"]
+	path = reference/opnsense-core
+	url = git@github.com:opnsense/core.git
+	shallow = true
+[submodule "reference/hawser"]
+	path = reference/hawser
+	url = git@github.com:Finsys/hawser.git
+	shallow = true
