@@ -24,6 +24,9 @@ type Client interface {
 	ConfigList(ctx context.Context, options types.ConfigListOptions) ([]swarm.Config, error)
 	ConfigInspectWithRaw(ctx context.Context, id string) (swarm.Config, []byte, error)
 	Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error)
+	// HostIP returns the IP address of the Docker host. For Hawser remote clients this
+	// is the IP extracted from the agent URL. For the local socket it returns "".
+	HostIP() string
 }
 
 // WrapClient creates a new docker client wrapper
@@ -75,4 +78,8 @@ func (wrapper *clientWrapper) ConfigInspectWithRaw(ctx context.Context, id strin
 
 func (wrapper *clientWrapper) Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error) {
 	return wrapper.client.Events(ctx, options)
+}
+
+func (wrapper *clientWrapper) HostIP() string {
+	return ""
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/lucaslorentz/caddy-docker-proxy/v2/config"
 	"github.com/lucaslorentz/caddy-docker-proxy/v2/docker"
+	"github.com/lucaslorentz/caddy-docker-proxy/v2/gateway"
 	"github.com/lucaslorentz/caddy-docker-proxy/v2/generator"
 	"github.com/lucaslorentz/caddy-docker-proxy/v2/utils"
 
@@ -42,6 +43,8 @@ type DockerLoader struct {
 	lastVersion     int64
 	serversVersions *utils.StringInt64CMap
 	serversUpdating *utils.StringBoolCMap
+	gatewayClient   *gateway.Client
+	gatewayState    *gateway.State
 }
 
 // CreateDockerLoader creates a docker loader
@@ -137,6 +140,19 @@ func (dockerLoader *DockerLoader) Start() error {
 	}
 
 	dockerLoader.dockerClients = dockerClients
+
+	// Discover remote Docker hosts from gateway.remote.N.* labels on our own container.
+	dockerLoader.discoverRemoteHosts(log)
+
+	// Initialize OPNsense gateway client and reconcile existing rules from a previous run.
+	dockerLoader.gatewayClient = gateway.NewClientFromEnv()
+	dockerLoader.gatewayState = gateway.NewState(dockerLoader.gatewayClient)
+	if dockerLoader.gatewayClient.Enabled() {
+		if err := dockerLoader.gatewayState.ReconcileOnStartup(context.Background(), log); err != nil {
+			log.Error("gateway: startup reconciliation failed", zap.Error(err))
+		}
+	}
+
 	dockerLoader.skipEvents = make([]bool, len(dockerLoader.dockerClients))
 
 	dockerLoader.generator = generator.CreateGenerator(
@@ -287,6 +303,8 @@ func (dockerLoader *DockerLoader) update() bool {
 		go dockerLoader.updateServer(&wg, server)
 	}
 	wg.Wait()
+
+	dockerLoader.reconcileGateway()
 
 	return true
 }

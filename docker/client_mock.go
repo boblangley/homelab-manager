@@ -23,6 +23,7 @@ type ClientMock struct {
 	NetworkInspectData   map[string]network.Inspect
 	EventsChannel        chan events.Message
 	ErrorsChannel        chan error
+	HostIPData           string
 }
 
 // ContainerList list all containers
@@ -88,4 +89,9 @@ func (mock *ClientMock) ConfigInspectWithRaw(ctx context.Context, id string) (sw
 // Events listen for events in docker
 func (mock *ClientMock) Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error) {
 	return mock.EventsChannel, mock.ErrorsChannel
+}
+
+// HostIP returns the mock host IP
+func (mock *ClientMock) HostIP() string {
+	return mock.HostIPData
 }

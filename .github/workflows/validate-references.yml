@@ -1,0 +1,36 @@
+name: validate-references
+
+on:
+  pull_request:
+    paths:
+      - '.gitmodules'
+      - 'reference/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Generate OPNsense types
+        working-directory: homelab-manager
+        run: go generate ./gateway/...
+
+      - name: Check for uncommitted type changes
+        working-directory: homelab-manager
+        run: git diff --exit-code gateway/opnsense_types_gen.go
+
+      - name: Validate Hawser protocol constants
+        working-directory: homelab-manager
+        run: ./scripts/validate-hawser-protocol.sh
+
+      - name: Run tests
+        working-directory: homelab-manager
+        run: go test ./...
